@@ -12,8 +12,8 @@ import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/intro
 import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/IERC165Upgradeable.sol";
 
 import {IComponentToken} from "./interfaces/IComponentToken.sol";
-import {IERC7540} from "./interfaces/IERC7540.sol";
-import {IERC7575} from "./interfaces/IERC7575.sol";
+import {IERC7540Upgradeable} from "./interfaces/IERC7540Upgradeable.sol";
+import {IERC7575Upgradeable} from "./interfaces/IERC7575Upgradeable.sol";
 
 /**
  * @title ComponentToken
@@ -26,8 +26,7 @@ abstract contract ComponentToken is
     ERC4626Upgradeable,
     AccessControlUpgradeable,
     UUPSUpgradeable,
-    ERC165,
-    IERC7540
+    IERC7540Upgradeable
 {
     // Storage
 
@@ -137,7 +136,11 @@ abstract contract ComponentToken is
      * @param user Address of the user who is selling the assets
      * @param assets Amount of assets required in the failed transfer
      */
-    error InsufficientBalance(IERC20 asset, address user, uint256 assets);
+    error InsufficientBalance(
+        IERC20Upgradeable asset,
+        address user,
+        uint256 assets
+    );
 
     // Initializer
 
@@ -162,7 +165,7 @@ abstract contract ComponentToken is
         address owner,
         string memory name,
         string memory symbol,
-        IERC20 asset_,
+        IERC20Upgradeable asset_,
         bool asyncDeposit,
         bool asyncRedeem
     ) public initializer {
@@ -190,19 +193,23 @@ abstract contract ComponentToken is
         address newImplementation
     ) internal override(UUPSUpgradeable) onlyRole(UPGRADER_ROLE) {}
 
-    /// @inheritdoc IERC165
+    /// @inheritdoc IERC165Upgradeable
     function supportsInterface(
         bytes4 interfaceId
     )
         public
         view
         virtual
-        override(AccessControlUpgradeable, ERC165, IERC165)
+        override(
+            AccessControlUpgradeable,
+            /// ERC165Upgradeable,
+            IERC165Upgradeable
+        )
         returns (bool supported)
     {
         if (
             super.supportsInterface(interfaceId) ||
-            interfaceId == type(IERC7575).interfaceId ||
+            interfaceId == type(IERC7575Upgradeable).interfaceId ||
             interfaceId == 0xe3bc4e65
         ) {
             return true;
@@ -213,49 +220,49 @@ abstract contract ComponentToken is
             ($.asyncRedeem && interfaceId == 0x620ee8e4);
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function asset()
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC7540)
+        override(ERC4626Upgradeable, IERC7540Upgradeable)
         returns (address assetTokenAddress)
     {
         return super.asset();
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function totalAssets()
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC7540)
+        override(ERC4626Upgradeable, IERC7540Upgradeable)
         returns (uint256 totalManagedAssets)
     {
         return super.totalAssets();
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function convertToShares(
         uint256 assets
     )
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC7540)
+        override(ERC4626Upgradeable, IERC7540Upgradeable)
         returns (uint256 shares)
     {
         revert Unimplemented();
     }
 
-    /// @inheritdoc IERC4626
+    /// @inheritdoc IERC4626Upgradeable
     function convertToAssets(
         uint256 shares
     )
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC7540)
+        override(ERC4626Upgradeable, IERC7540Upgradeable)
         returns (uint256 assets)
     {
         revert Unimplemented();
@@ -281,8 +288,18 @@ abstract contract ComponentToken is
             revert Unimplemented();
         }
 
-        if (!IERC20(asset()).transferFrom(owner, address(this), assets)) {
-            revert InsufficientBalance(IERC20(asset()), owner, assets);
+        if (
+            !IERC20Upgradeable(asset()).transferFrom(
+                owner,
+                address(this),
+                assets
+            )
+        ) {
+            revert InsufficientBalance(
+                IERC20Upgradeable(asset()),
+                owner,
+                assets
+            );
         }
         $.pendingDepositRequest[controller] += assets;
 
@@ -343,9 +360,17 @@ abstract contract ComponentToken is
             $.sharesDepositRequest[controller] -= shares;
         } else {
             if (
-                !IERC20(asset()).transferFrom(controller, address(this), assets)
+                !IERC20Upgradeable(asset()).transferFrom(
+                    controller,
+                    address(this),
+                    assets
+                )
             ) {
-                revert InsufficientBalance(IERC20(asset()), controller, assets);
+                revert InsufficientBalance(
+                    IERC20Upgradeable(asset()),
+                    controller,
+                    assets
+                );
             }
             shares = convertToShares(assets);
         }
@@ -355,7 +380,7 @@ abstract contract ComponentToken is
         emit Deposit(controller, receiver, assets, shares);
     }
 
-    /// @inheritdoc IERC7540
+    /// @inheritdoc IERC7540Upgradeable
     function mint(
         uint256 shares,
         address receiver,
@@ -379,9 +404,17 @@ abstract contract ComponentToken is
             $.sharesDepositRequest[controller] -= shares;
         } else {
             if (
-                !IERC20(asset()).transferFrom(controller, address(this), assets)
+                !IERC20Upgradeable(asset()).transferFrom(
+                    controller,
+                    address(this),
+                    assets
+                )
             ) {
-                revert InsufficientBalance(IERC20(asset()), controller, assets);
+                revert InsufficientBalance(
+                    IERC20Upgradeable(asset()),
+                    controller,
+                    assets
+                );
             }
         }
 
@@ -445,7 +478,7 @@ abstract contract ComponentToken is
         emit RedeemNotified(controller, assets, shares);
     }
 
-    /// @inheritdoc IERC7540
+    /// @inheritdoc IERC7540Upgradeable
     function redeem(
         uint256 shares,
         address receiver,
@@ -453,7 +486,7 @@ abstract contract ComponentToken is
     )
         public
         virtual
-        override(ERC4626Upgradeable, IERC7540)
+        override(ERC4626Upgradeable, IERC7540Upgradeable)
         returns (uint256 assets)
     {
         if (shares == 0) {
@@ -476,14 +509,18 @@ abstract contract ComponentToken is
             assets = convertToAssets(shares);
         }
 
-        if (!IERC20(asset()).transfer(receiver, assets)) {
-            revert InsufficientBalance(IERC20(asset()), address(this), assets);
+        if (!IERC20Upgradeable(asset()).transfer(receiver, assets)) {
+            revert InsufficientBalance(
+                IERC20Upgradeable(asset()),
+                address(this),
+                assets
+            );
         }
 
         emit Withdraw(controller, receiver, controller, assets, shares);
     }
 
-    /// @inheritdoc IERC7540
+    /// @inheritdoc IERC7540Upgradeable
     function withdraw(
         uint256 assets,
         address receiver,
@@ -491,7 +528,7 @@ abstract contract ComponentToken is
     )
         public
         virtual
-        override(ERC4626Upgradeable, IERC7540)
+        override(ERC4626Upgradeable, IERC7540Upgradeable)
         returns (uint256 shares)
     {
         if (assets == 0) {
@@ -514,8 +551,12 @@ abstract contract ComponentToken is
             _burn(controller, shares);
         }
 
-        if (!IERC20(asset()).transfer(receiver, assets)) {
-            revert InsufficientBalance(IERC20(asset()), address(this), assets);
+        if (!IERC20Upgradeable(asset()).transfer(receiver, assets)) {
+            revert InsufficientBalance(
+                IERC20Upgradeable(asset()),
+                address(this),
+                assets
+            );
         }
 
         emit Withdraw(controller, receiver, controller, assets, shares);
@@ -523,12 +564,12 @@ abstract contract ComponentToken is
 
     // Getter View Functions
 
-    /// @inheritdoc IERC7575
+    /// @inheritdoc IERC7575Upgradeable
     function share() external view returns (address shareTokenAddress) {
         return address(this);
     }
 
-    /// @inheritdoc IERC7540
+    /// @inheritdoc IERC7540Upgradeable
     function isOperator(address, address) public pure returns (bool status) {
         return false;
     }
@@ -566,7 +607,7 @@ abstract contract ComponentToken is
     }
 
     /**
-     * @inheritdoc IERC4626
+     * @inheritdoc IERC4626Upgradeable
      * @dev Must revert for all callers and inputs for asynchronous deposit vaults
      */
     function previewDeposit(
@@ -575,7 +616,7 @@ abstract contract ComponentToken is
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC4626)
+        override(ERC4626Upgradeable, IERC4626Upgradeable)
         returns (uint256 shares)
     {
         if (_getComponentTokenStorage().asyncDeposit) {
@@ -585,7 +626,7 @@ abstract contract ComponentToken is
     }
 
     /**
-     * @inheritdoc IERC4626
+     * @inheritdoc IERC4626Upgradeable
      * @dev Must revert for all callers and inputs for asynchronous deposit vaults
      */
     function previewMint(
@@ -594,7 +635,7 @@ abstract contract ComponentToken is
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC4626)
+        override(ERC4626Upgradeable, IERC4626Upgradeable)
         returns (uint256 assets)
     {
         if (_getComponentTokenStorage().asyncDeposit) {
@@ -604,7 +645,7 @@ abstract contract ComponentToken is
     }
 
     /**
-     * @inheritdoc IERC4626
+     * @inheritdoc IERC4626Upgradeable
      * @dev Must revert for all callers and inputs for asynchronous redeem vaults
      */
     function previewRedeem(
@@ -613,7 +654,7 @@ abstract contract ComponentToken is
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC4626)
+        override(ERC4626Upgradeable, IERC4626Upgradeable)
         returns (uint256 assets)
     {
         if (_getComponentTokenStorage().asyncRedeem) {
@@ -623,7 +664,7 @@ abstract contract ComponentToken is
     }
 
     /**
-     * @inheritdoc IERC4626
+     * @inheritdoc IERC4626Upgradeable
      * @dev Must revert for all callers and inputs for asynchronous redeem vaults
      */
     function previewWithdraw(
@@ -632,7 +673,7 @@ abstract contract ComponentToken is
         public
         view
         virtual
-        override(ERC4626Upgradeable, IERC4626)
+        override(ERC4626Upgradeable, IERC4626Upgradeable)
         returns (uint256 shares)
     {
         if (_getComponentTokenStorage().asyncRedeem) {
@@ -641,8 +682,8 @@ abstract contract ComponentToken is
         shares = super.previewWithdraw(assets);
     }
 
-    /// @inheritdoc IERC7540
-    function setOperator(address, bool) public pure returns (bool) {
+    /// @inheritdoc IERC7540Upgradeable
+    function setOperator(address, bool) public virtual returns (bool) {
         revert Unimplemented();
     }
 }
